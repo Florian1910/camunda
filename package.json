@@ -1,0 +1,15 @@
+{
+  "name": "camunda_worker",
+  "version": "1.0.0",
+  "main": "worker.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node worker.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "zeebe-node": "^8.3.2"
+  }
+}

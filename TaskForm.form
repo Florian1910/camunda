@@ -1,0 +1,10 @@
+{
+  "components": [
+    {
+      "text": "# Genehmigungs-Task",
+      "type": "text"
+    }
+  ],
+  "schemaVersion": 7,
+  "type": "default"
+}
