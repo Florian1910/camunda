@@ -1,7 +1,6 @@
 const { ZBClient } = require('zeebe-node');
 
 // Diese Variable existiert nur, solange der Worker läuft.
-// Sie ist KEINE Camunda-Prozessvariable.
 let executionCount = 0;
 
 async function main() {
@@ -13,385 +12,398 @@ async function main() {
       retry: true,
     });
 
-    console.log('✅ Verbunden mit Zeebe')
+    console.log('✅ Verbunden mit Zeebe');
 
+    // ------------------------------------------------------------
+    // 1. Anfrage schreiben
+    // ------------------------------------------------------------
     zbc.createWorker({
       taskType: 'anfrage-schreiben',
       taskHandler: async (job) => {
         console.log('\n=== 1. Anfrage schreiben ===');
         console.log('📊 Empfangene Variablen:', job.variables);
-        const nachrichtVomUser1 = job.variables.berg; // Variable vom User
-        const nachrichtVomUser2 = job.variables.datum; // Variable vom User
 
-        // BESSERE LÖSUNG: Eine eindeutige ID verwenden.
-        // // Der processInstanceKey ist pro Instanz eindeutig.
-        const eindeutigeAnfrageID = job.processInstanceKey; 
-        
-        // Alternative (falls du npm-Pakete nutzen kannst):
-        // const { v4: uuidv4 } = require('uuid');
-        // const eindeutigeAnfrageID = uuidv4();
+        const nachrichtVomUser1 = job.variables.berg;
+        const nachrichtVomUser2 = job.variables.datum;
 
-        console.log(`🔑 Erzeuge eindeutige anfrageID (Korrelationsschlüssel): ${eindeutigeAnfrageID}`);
+        const eindeutigeAnfrageID = job.processInstanceKey;
+
+        console.log(`🔑 Erzeuge eindeutige AnfrageID: ${eindeutigeAnfrageID}`);
+
         await job.complete({
-          anfrageID: eindeutigeAnfrageID, // Die neue, eindeutige ID
-          berg: nachrichtVomUser1, // Die ursprüngliche Variable weiterleiten
-          datum: nachrichtVomUser1 // Die ursprüngliche Variable weiterleiten
-          });
+          anfrageID: eindeutigeAnfrageID,
+          berg: nachrichtVomUser1,
+          datum: nachrichtVomUser2
+        });
 
-          console.log(`✅ "Anfrage stellen" abgeschlossen.`);
-        },
-      });
-      
+        console.log(`✅ "Anfrage stellen" abgeschlossen.`);
+      }
+    });
+
+    // ------------------------------------------------------------
+    // 2. Angebot erstellen
+    // ------------------------------------------------------------
     zbc.createWorker({
       taskType: 'angebot-erstellen',
       taskHandler: async (job) => {
         console.log('\n=== 2. Angebot erstellen ===');
         console.log('📊 Empfangene Variablen:', job.variables);
 
-        // 1. Benötigte Variablen aus dem Prozess holen
-        const anfrageID = job.variables.anfrageID; // SEHR WICHTIG!
+        const anfrageID = job.variables.anfrageID;
         const bergWunsch = job.variables.berg;
 
-        // 2. Das Angebot als Variable erstellen (wie gewünscht)
-        const angebotText = `Hier ist dein Angebot für die Reise zum ${bergWunsch}: Flug + Unterkunft: 750 EUR.`;
+        const angebotText =
+          `Hier ist dein Angebot für die Reise zum ${bergWunsch}: Flug + Unterkunft: 750 EUR.`;
+
         console.log(`📝 Angebot erstellt: ${angebotText}`);
 
-        // 3. Job abschließen und die NEUE Variable "angebot" 
-        // UND die anfrageID für das Throw Event bereitstellen
         await job.complete({
-          angebot: angebotText, 
-          anfrageID: anfrageID // Unbedingt die ID für die Korrelation weitergeben!
+          angebot: angebotText,
+          anfrageID: anfrageID
         });
-      
-        console.log(`✅ "Angebot erstellen" abgeschlossen.`);
 
-      },
+        console.log(`✅ "Angebot erstellen" abgeschlossen.`);
+      }
     });
 
+    // ------------------------------------------------------------
+    // 3. Absage erstellen
+    // ------------------------------------------------------------
     zbc.createWorker({
       taskType: 'absage-erstellen',
       taskHandler: async (job) => {
-        console.log('\n=== 2. Absage erstellen ===');
+        console.log('\n=== 3. Absage erstellen ===');
         console.log('📊 Empfangene Variablen:', job.variables);
 
-        // 1. Benötigte Variablen aus dem Prozess holen
-        const anfrageID = job.variables.anfrageID; // SEHR WICHTIG!
+        const anfrageID = job.variables.anfrageID;
         const bergWunsch = job.variables.berg;
 
-        // 2. Das Angebot als Variable erstellen (wie gewünscht)
         const absageText = `Der Berg ${bergWunsch} wird leider nicht unterstützt.`;
-        console.log(`📝 Angebot erstellt: ${absageText}`);
 
-        // 3. Job abschließen und die NEUE Variable "angebot" 
-        // UND die anfrageID für das Throw Event bereitstellen
+        console.log(`📝 Absage erstellt: ${absageText}`);
+
         await job.complete({
-          absage: absageText, 
-          anfrageID: anfrageID // Unbedingt die ID für die Korrelation weitergeben!
+          absage: absageText,
+          anfrageID: anfrageID
         });
-      
-        console.log(`✅ "Absage erstellen" abgeschlossen.`);
 
-      },
+        console.log(`✅ "Absage erstellen" abgeschlossen.`);
+      }
     });
 
+    // ------------------------------------------------------------
+    // 4. Zusage schreiben
+    // ------------------------------------------------------------
     zbc.createWorker({
-      // Dieser Typ muss mit dem "Job type" im Prozessmodell übereinstimmen
       taskType: 'zusage-schreiben',
-      
       taskHandler: async (job) => {
         console.log('\n=== 4. Zusage schreiben ===');
         console.log('📊 Empfangene Variablen:', job.variables);
 
-        // 1. Eindeutige ID für die Korrelation abrufen
-        // (Die ID, die zu Beginn erstellt wurde, um die Antwort einem Prozess zuzuordnen)
         const korrelationsID = job.variables.anfrageID;
+        const antwortText = "Das ist die finale Antwort an den Kunden.";
 
-        // 2. Neue Variable "Antwort" erstellen
-        const antwortText = 'zusage';
         console.log(`📝 Antwort erstellt: ${antwortText}`);
-        console.log(`🔑 Korrelationsschlüssel für Antwort: ${korrelationsID}`);
+        console.log(`🔑 Korrelationsschlüssel: ${korrelationsID}`);
 
-        // 3. Job abschließen und Variablen zurückgeben
         await job.complete({
-          Antwort: antwortText,
-          anfrageID: korrelationsID // ursprüngliche ID für das Throw Event weitergeben
+          anfrageID: korrelationsID,
+          Antwort: antwortText
         });
 
-        console.log('✅ "Zusage schreiben" abgeschlossen.');
-      },
+        console.log(`✅ "Zusage schreiben" abgeschlossen.`);
+      }
     });
 
-
+    // ------------------------------------------------------------
+    // 5. Hotelanfrage schreiben
+    // ------------------------------------------------------------
     zbc.createWorker({
-      // Dieser Typ muss mit dem "Job type" in deinem BPMN-Modell übereinstimmen
       taskType: 'hotelanfrage-schreiben',
-
       taskHandler: async (job) => {
-        console.log('\n=== 1. Hotelanfrage schreiben ===');
+        console.log('\n=== Hotelanfrage schreiben ===');
         console.log('📊 Empfangene Variablen:', job.variables);
 
-        // 1. Variable "datum" holen (muss bereits im Prozess vorhanden sein)
         const reiseDatum = job.variables.datum;
-
-        // 2. Eindeutige ID für diese Anfrage erstellen
-        // Wir nutzen den processInstanceKey, da er garantiert eindeutig ist.
         const hotelAnfrageID = job.processInstanceKey;
-        console.log(`🔑 Erzeuge Hotel-Korrelationsschlüssel: ${hotelAnfrageID}`);
-        console.log(`📅 Sende Datum: ${reiseDatum}`);
 
-        // 3. Job abschließen -> Variablen stehen für das Message Throw Event bereit
+        console.log(`🔑 Hotel-Korrelationsschlüssel: ${hotelAnfrageID}`);
+
         await job.complete({
           datum: reiseDatum,
           hotelAnfrageID: hotelAnfrageID
         });
 
         console.log('✅ "Hotelanfrage schreiben" abgeschlossen.');
-      },
+      }
     });
 
+    // ------------------------------------------------------------
+    // 6. Hotel-Angebot senden
+    // ------------------------------------------------------------
     zbc.createWorker({
-      // Dieser Typ muss mit dem "Job type" im "Hotel-Prozess" übereinstimmen
       taskType: 'hotel-angebot-senden',
-
       taskHandler: async (job) => {
-        console.log('\n=== 2. Hotel-Vorschlag erstellen (Worker: "Angebot senden") ===');
+        console.log('\n=== Hotel-Angebot senden ===');
         console.log('📊 Empfangene Variablen:', job.variables);
 
-        // 1. Variablen aus der Anfrage holen
         const angefragtesDatum = job.variables.datum;
-        const korrelationsID = job.variables.hotelAnfrageID; // ID vom ursprünglichen Anfrager
+        const korrelationsID = job.variables.hotelAnfrageID;
 
-        // 2. Vorschlagstext erstellen
         const vorschlagText =
           `Hier ist unser Vorschlag für ${angefragtesDatum}: Hotel "Sonne", 120 EUR/Nacht.`;
 
-        console.log(`📝 Vorschlag erstellt: ${vorschlagText}`);
-
-        // 3. Job abschließen -> Variablen für das Antwort-Throw-Event bereitstellen
         await job.complete({
           vorschlag: vorschlagText,
-          hotelAnfrageID: korrelationsID // ID für die Rückkorrelation
+          hotelAnfrageID: korrelationsID
         });
 
-        console.log('✅ "Vorschlag erstellen" abgeschlossen.');
-      },
+        console.log('✅ "Hotel-Angebot senden" abgeschlossen.');
+      }
     });
 
+    // ------------------------------------------------------------
+    // 7. Fluganfrage schreiben
+    // ------------------------------------------------------------
     zbc.createWorker({
-      // Dieser Typ muss mit dem "Job type" in deinem BPMN-Modell übereinstimmen
       taskType: 'fluganfrage-schreiben',
-
       taskHandler: async (job) => {
-        console.log('\n=== 1. Fluganfrage schreiben ===');
+        console.log('\n=== Fluganfrage schreiben ===');
         console.log('📊 Empfangene Variablen:', job.variables);
 
-        // 1. Variable holen (z.B. "flugZiel")
         const flugWunsch = job.variables.flugZiel;
-
-        // 2. Eindeutige ID für diese Anfrage erstellen
         const flugAnfrageID = job.processInstanceKey;
-        console.log(`🔑 Erzeuge Flug-Korrelationsschlüssel: ${flugAnfrageID}`);
-        console.log(`✈️ Sende Flugwunsch: ${flugWunsch}`);
 
-        // 3. Job abschließen -> Variablen für das Message Throw Event bereitstellen
         await job.complete({
           flugZiel: flugWunsch,
           flugAnfrageID: flugAnfrageID
         });
 
         console.log('✅ "Fluganfrage schreiben" abgeschlossen.');
-      },
+      }
     });
 
+    // ------------------------------------------------------------
+    // 8. Flug-Angebot senden
+    // ------------------------------------------------------------
     zbc.createWorker({
-      // WICHTIG: Muss exakt zum Job Type im Flug-Prozess passen
       taskType: 'flug-angebot-senden',
-
       taskHandler: async (job) => {
-        console.log('\n=== 2. Flug-Angebot erstellen (Worker: "Angebot senden") ===');
+        console.log('\n=== Flug-Angebot senden ===');
         console.log('📊 Empfangene Variablen:', job.variables);
 
-        // 1. Variablen aus der Anfrage holen
         const angefragtesZiel = job.variables.flugZiel;
-        const korrelationsID = job.variables.flugAnfrageID; // ID vom ursprünglichen Anfrager
+        const korrelationsID = job.variables.flugAnfrageID;
 
-        // 2. Flugangebot erstellen
-        const angebotText = `Hier ist unser Flug-Angebot für ${angefragtesZiel}: 350 EUR.`;
-        console.log(`📝 Flug-Angebot erstellt: ${angebotText}`);
+        const angebotText =
+          `Hier ist unser Flug-Angebot für ${angefragtesZiel}: 350 EUR.`;
 
-        // 3. Job abschließen -> Variablen für das Antwort-Throw-Event bereitstellen
         await job.complete({
           flugAngebot: angebotText,
-          flugAnfrageID: korrelationsID  // ID zur Korrelation zurückgeben
+          flugAnfrageID: korrelationsID
         });
 
-        console.log('✅ "Flug-Angebot erstellen" abgeschlossen.');
-      },
+        console.log('✅ "Flug-Angebot senden" abgeschlossen.');
+      }
     });
 
-
-
-
-    // ----------------------------------------------------------------------------------------------------------------------------
-    // ---------------------------------------------------ALT-------------------------------------------------------------------------
-    // ----------------------------------------------------------------------------------------------------------------------------
-    // ----------------------------------------------------------------------------------------------------------------------------
-
-    // =========================================================================
-    // 1. WORKER: "WhatsApp öffnen"
-    // BPMN-Task-Type: whatsapp-oeffnen
-    // =========================================================================
+    // ------------------------------------------------------------
+    // 9. Zahlungsaufforderung erstellen
+    // ------------------------------------------------------------
     zbc.createWorker({
-      taskType: 'whatsapp-oeffnen',
+      taskType: 'zahlungsaufforderung-erstellen',
       taskHandler: async (job) => {
-        console.log('\n=== 1. WhatsApp öffnen ===');
-        
-        // LOKALE VARIABLE:
-        // 'korrelationsId' existiert NUR hier im Worker.
-        // Camunda weiß nichts von dieser Variable, bis wir sie senden.
-        const korrelationsId = 'B-' + Date.now();
-        console.log(`🔑 Erzeuge nachrichtID (Korrelationsschlüssel): ${korrelationsId}`);
-
-        // OUTPUT AN CAMUNDA:
-        // Mit 'job.complete' sendest du Variablen an den Prozess.
-        // Hier nimmst du den WERT von 'korrelationsId' (z.B. "B-12345")
-        // und erstellst damit eine NEUE PROZESSVARIABLE namens 'nachrichtID'.
-        await job.complete({
-          nachrichtID: korrelationsId, // nachrichtID ist jetzt eine Prozessvariable
-        });
-        console.log('✅ "WhatsApp öffnen" abgeschlossen, nachrichtID gesendet.');
-      },
-    });
-
-    // =========================================================================
-    // 2. WORKER: "Antwort eintippen"
-    // BPMN-Task-Type: nachricht-beantworten
-    // =========================================================================
-    zbc.createWorker({
-      taskType: 'nachricht-beantworten',
-      taskHandler: async (job) => {
-        console.log('\n=== 2. Antwort eintippen ===');
+        console.log('\n=== Zahlungsaufforderung erstellen ===');
         console.log('📊 Empfangene Variablen:', job.variables);
 
-        // INPUT VON CAMUNDA:
-        // 'job.variables' enthält alle Prozessvariablen.
-        // Hier HOLST du dir den Wert der Variable 'nachricht',
-        // die der Mensch im User Task zuvor eingegeben hat.
-        const nachrichtVomUser = job.variables.nachricht;
+        const korrelationsID = job.variables.anfrageID;
+        const zahlungsText = "Bitte begleichen Sie den offenen Betrag von 750 EUR.";
 
-        // OUTPUT AN CAMUNDA (PASS-THROUGH):
-        // Ein 'job.complete()' OHNE { } bedeutet:
-        // "Ich bin fertig. Sende KEINE neuen Variablen, aber
-        // lösche auch KEINE alten."
-        // Alle Variablen ('nachricht' und 'nachrichtID')
-        // bleiben für den nächsten Schritt ("Antwort senden") erhalten.
-        await job.complete(); 
-
-        console.log(`✅ "Antwort eintippen" abgeschlossen. Nachricht "${nachrichtVomUser}" wird weitergeleitet...`);
-      },
-    });
-
-    zbc.createWorker({
-      taskType: 'zusage-schreiben',
-      taskHandler: async (job) => {
-        console.log('\n=== Zusage schreiben (POOL 2) ===');
-        // console.log('📊 Empfangene Variablen:', job.variables);
-
-        // LOKALE VARIABLE:
-        // 'entscheidung' ist eine rein lokale Variable. Camunda sieht sie NICHT.
-        // Sie wird nur hier für die Logik des Workers benötigt.
-        let entscheidung = 'ja';
-        
-        console.log(`⚖️ Entscheidung getroffen (Lauf ${executionCount}): ${entscheidung}`);
-
-        // OUTPUT AN CAMUNDA:
-        // Hier nimmst du den WERT von 'entscheidung' (z.B. "ja")
-        // und sendest ihn an Camunda.
-        // Camunda erstellt/überschreibt die PROZESSVARIABLE 'status'.
-        // Im nächsten Gateway (Raute) kannst du dann prüfen: = status = "ja"
         await job.complete({
-          zusage: entscheidung,
+          anfrageID: korrelationsID,
+          Zahlungsaufforderung: zahlungsText
         });
-        console.log('✅ Zusage schreiben, Zusage gesendet.');
-      },
+
+        console.log('✅ "Zahlungsaufforderung erstellen" abgeschlossen.');
+      }
     });
 
-    // =============================================================================================================================================================================================================================================================================================================================================================================
-    // =============================================================================================================================================================================================================================================================================================================================================================================
-    
-    // =========================================================================
-    // 3. WORKER: "Antrag vorbereiten"
-    // BPMN-Task-Type: anfrage-vorbereiten
-    // =========================================================================
+    // ------------------------------------------------------------
+    // 10. Zahlung vorbereiten
+    // ------------------------------------------------------------
     zbc.createWorker({
-      taskType: 'anfrage-vorbereiten',
+      taskType: 'zahlung-vorbereiten',
       taskHandler: async (job) => {
-        console.log('\n=== 3. ANTRAG VORBEREITEN ===');
-        
-        // LOKALE VARIABLE:
-        // 'korrelationsId' existiert NUR hier im Worker.
-        const korrelationsId = 'A-' + Date.now();
-        console.log(`🔑 Erzeuge anfrageID: ${korrelationsId}`);
-
-        // OUTPUT AN CAMUNDA:
-        // Genau wie bei Worker 1:
-        // Erzeuge eine NEUE PROZESSVARIABLE namens 'anfrageID'.
-        await job.complete({
-          anfrageID: korrelationsId, // anfrageID ist jetzt eine Prozessvariable
-        });
-        console.log('✅ Anfrage vorbereitet, anfrageID gesendet.');
-      },
-    });
-
-    // =========================================================================
-    // 4. WORKER: "Antrag bearbeiten"
-    // BPMN-Task-Type: anfrage-bearbeiten
-    // =========================================================================
-    zbc.createWorker({
-      taskType: 'anfrage-bearbeiten',
-      taskHandler: async (job) => {
-        console.log('\n=== 4. ANTRAG BEARBEITEN (POOL 2) ===');
+        console.log('\n=== Zahlung vorbereiten ===');
         console.log('📊 Empfangene Variablen:', job.variables);
 
-        // LOKALE VARIABLE:
-        // 'entscheidung' ist eine rein lokale Variable. Camunda sieht sie NICHT.
-        // Sie wird nur hier für die Logik des Workers benötigt.
-        let entscheidung;
-        
-        // (executionCount ist eine globale Variable in dieser JS-Datei, 
-        // KEINE Camunda-Variable. Sie zählt, wie oft dieser Worker aufgerufen wurde.)
-        if (executionCount === 0) {
-          entscheidung = 'nein';
-        } else {
-          entscheidung = 'ja';
-        }
-        executionCount++;
-        
-        console.log(`⚖️ Entscheidung getroffen (Lauf ${executionCount}): ${entscheidung}`);
+        const anfrageID = job.variables.anfrageID;
+        const betrag = 750;
 
-        // OUTPUT AN CAMUNDA:
-        // Hier nimmst du den WERT von 'entscheidung' (z.B. "ja")
-        // und sendest ihn an Camunda.
-        // Camunda erstellt/überschreibt die PROZESSVARIABLE 'status'.
-        // Im nächsten Gateway (Raute) kannst du dann prüfen: = status = "ja"
         await job.complete({
-          status: entscheidung,
+          zahlungsID: anfrageID,
+          anfrageID: anfrageID,
+          Betrag: betrag
         });
-        console.log('✅ Anfrage bearbeitet, status gesendet.');
-      },
+
+        console.log('✅ "Zahlung vorbereiten" abgeschlossen.');
+      }
     });
 
-    // --- Info-Ausgabe ---
-    console.log('\n👂 Alle 4 Worker sind jetzt aktiv:');
-    console.log('   1. whatsapp-oeffnen');
-    console.log('   2. nachricht-beantworten');
-    console.log('   3. anfrage-vorbereiten');
-    console.log('   4. anfrage-bearbeiten');
-    console.log('\n💡 Drücke Ctrl+C zum Beenden');
-  } catch (error) {
-    console.error('💥 Schwerer Fehler beim Starten des Workers:', error);
-    process.exit(1);
+    // ------------------------------------------------------------
+    // 11. Bank-Zahlung vorbereiten
+    // ------------------------------------------------------------
+    zbc.createWorker({
+      taskType: 'bank-zahlung-vorbereiten',
+      taskHandler: async (job) => {
+        console.log('\n=== Bank-Zahlung vorbereiten ===');
+        console.log('📊 Empfangene Variablen:', job.variables);
+
+        const verwendungszweck = job.variables.Verwendungszweck;
+        const betrag = 750;
+
+        await job.complete({
+          anfrageID: verwendungszweck,
+          Zahlung: betrag
+        });
+
+        console.log('✅ "Bank-Zahlung vorbereiten" abgeschlossen.');
+      }
+    });
+
+    // ------------------------------------------------------------
+    // 12. Bank-Zahlungsbestätigung vorbereiten
+    // ------------------------------------------------------------
+    zbc.createWorker({
+      taskType: 'bank-zahlungsbestätigung-vorbereiten',
+      taskHandler: async (job) => {
+        console.log('\n=== Bank-Zahlungsbestätigung vorbereiten ===');
+        console.log('📊 Empfangene Variablen:', job.variables);
+
+        const zahlungsID = job.variables.zahlungsID;
+        const betrag = 750;
+
+        await job.complete({
+          zahlungsID: zahlungsID,
+          Betrag: betrag
+        });
+
+        console.log('✅ "Bank-Zahlungsbestätigung vorbereiten" abgeschlossen.');
+      }
+    });
+
+    // ------------------------------------------------------------
+    // 13. Hotel-Zahlung vorbereiten
+    // ------------------------------------------------------------
+    zbc.createWorker({
+      taskType: 'hotel-zahlung-vorbereiten',
+      taskHandler: async (job) => {
+        console.log('\n=== Hotel-Zahlung vorbereiten ===');
+        console.log('📊 Empfangene Variablen:', job.variables);
+
+        const korrelationsID = job.variables.hotelAnfrageID;
+        const reiseDatum = job.variables.datum;
+
+        await job.complete({
+          hotelAnfrageID: korrelationsID,
+          datum: reiseDatum
+        });
+
+        console.log('✅ "Hotel-Zahlung vorbereiten" abgeschlossen.');
+      }
+    });
+
+    // ------------------------------------------------------------
+    // 14. Flug-Zahlung vorbereiten
+    // ------------------------------------------------------------
+    zbc.createWorker({
+      taskType: 'flug-zahlung-vorbereiten',
+      taskHandler: async (job) => {
+        console.log('\n=== Flug-Zahlung vorbereiten ===');
+        console.log('📊 Empfangene Variablen:', job.variables);
+
+        const korrelationsID = job.variables.flugAnfrageID;
+        const reiseDatum = job.variables.datum;
+
+        await job.complete({
+          flugAnfrageID: korrelationsID,
+          datum: reiseDatum
+        });
+
+        console.log('✅ "Flug-Zahlung vorbereiten" abgeschlossen.');
+      }
+    });
+
+    // ------------------------------------------------------------
+    // 15. Flug-Zahlungsbestätigung senden
+    // ------------------------------------------------------------
+    zbc.createWorker({
+      taskType: 'flug-zahlungsbestätigung-senden',
+      taskHandler: async (job) => {
+        console.log('\n=== Flug-Zahlungsbestätigung senden ===');
+        console.log('📊 Empfangene Variablen:', job.variables);
+
+        const korrelationsID = job.variables.flugAnfrageID;
+        const text = "Ihre Flug-Zahlung wurde erfolgreich verbucht. Vielen Dank.";
+
+        await job.complete({
+          flugAnfrageID: korrelationsID,
+          flugbestätigung: text
+        });
+
+        console.log('✅ "Flug-Zahlungsbestätigung senden" abgeschlossen.');
+      }
+    });
+
+    // ------------------------------------------------------------
+    // 16. Hotel-Zahlungsbestätigung senden
+    // ------------------------------------------------------------
+    zbc.createWorker({
+      taskType: 'hotel-zahlungsbestätigung-senden',
+      taskHandler: async (job) => {
+        console.log('\n=== Hotel-Zahlungsbestätigung senden ===');
+        console.log('📊 Empfangene Variablen:', job.variables);
+
+        const korrelationsID = job.variables.hotelAnfrageID;
+        const text = "Ihre Hotel-Zahlung wurde erfolgreich verbucht. Wir freuen uns auf Sie.";
+
+        await job.complete({
+          hotelAnfrageID: korrelationsID,
+          hotelbestätigung: text
+        });
+
+        console.log('✅ "Hotel-Zahlungsbestätigung senden" abgeschlossen.');
+      }
+    });
+
+    zbc.createWorker({
+  taskType: 'buchungsbestätigung-vorbereiten',
+  taskHandler: async (job) => {
+    console.log('\n=== Finale Buchungsbestätigung vorbereiten ===');
+    console.log('📊 Empfangene Variablen:', job.variables);
+
+    const korrelationsID = job.variables.anfrageID;
+
+    const buchungsText = "Ihre Reise ist nun vollständig gebucht. Gute Reise!";
+
+    console.log(`🔑 ID für Korrelation & Payload (anfrageID): ${korrelationsID}`);
+    console.log(`📝 Finale Buchung: ${buchungsText}`);
+
+    await job.complete({
+      anfrageID: korrelationsID,
+      buchungsbestätigung: buchungsText
+    });
+
+    console.log(`✅ "Buchungsbestätigung vorbereiten" abgeschlossen.`);
+  }
+});
+
+  } catch (err) {
+    console.error('❌ Fehler im Worker:', err);
   }
 }
 
+
+
+// Programm starten
 main();
