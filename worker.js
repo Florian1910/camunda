@@ -51,9 +51,11 @@ async function main() {
 
         const anfrageID = job.variables.anfrageID;
         const bergWunsch = job.variables.berg;
+        const hotelkosten = job.variables.hotelAngebot
+        const flugkosten = job.variables.flugAngebot;
 
         const angebotText =
-          `Hier ist dein Angebot für die Reise zum ${bergWunsch}: Flug + Unterkunft: 750 EUR.`;
+          `Hier ist dein Angebot für die Reise zum ${bergWunsch}: Flug (${flugkosten} EUR) + Unterkunft (${hotelkosten} EUR).`;
 
         console.log(`📝 Angebot erstellt: ${angebotText}`);
 
@@ -149,12 +151,10 @@ async function main() {
 
         const angefragtesDatum = job.variables.datum;
         const korrelationsID = job.variables.hotelAnfrageID;
-
-        const vorschlagText =
-          `Hier ist unser Vorschlag für ${angefragtesDatum}: Hotel "Sonne", 120 EUR/Nacht.`;
+        const angebotHotel = job.variables.Hotelangebot;
 
         await job.complete({
-          vorschlag: vorschlagText,
+          hotelAngebot: angebotHotel,
           hotelAnfrageID: korrelationsID
         });
 
@@ -171,11 +171,13 @@ async function main() {
         console.log('\n=== Fluganfrage schreiben ===');
         console.log('📊 Empfangene Variablen:', job.variables);
 
-        const flugWunsch = job.variables.flugZiel;
+        const flugWunsch = job.variables.berg;
+        const flugDatum = job.variables.datum;
         const flugAnfrageID = job.processInstanceKey;
 
         await job.complete({
           flugZiel: flugWunsch,
+          flugDatum: flugDatum,
           flugAnfrageID: flugAnfrageID
         });
 
@@ -194,12 +196,10 @@ async function main() {
 
         const angefragtesZiel = job.variables.flugZiel;
         const korrelationsID = job.variables.flugAnfrageID;
-
-        const angebotText =
-          `Hier ist unser Flug-Angebot für ${angefragtesZiel}: 350 EUR.`;
+        const angebotFlug = job.variables.Flugangebot;
 
         await job.complete({
-          flugAngebot: angebotText,
+          flugAngebot: angebotFlug,
           flugAnfrageID: korrelationsID
         });
 
