@@ -1,409 +1,348 @@
 const { ZBClient } = require('zeebe-node');
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-// Diese Variable existiert nur, solange der Worker läuft.
-let executionCount = 0;
+// ============================================================
+// ⚙️ KONFIGURATION
+// ============================================================
+const ZEEBE_ADDRESS = 'localhost:26500';
+const GEMINI_API_KEY = "AIzaSyCmzFvDYrSugXK2hqLQH-DeZobQQwPQ_Bk"; //https://aistudio.google.com/app/usage?timeRange=last-1-day&project=gen-lang-client-0368553948
 
-async function main() {
+const AI_MODEL_NAME = "gemini-2.5-flash";
+
+// Initialisierung
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const zbc = new ZBClient(ZEEBE_ADDRESS);
+
+// ============================================================
+// 🧠 HILFSFUNKTIONEN (AI LOGIK)
+// ============================================================
+
+/**
+ * Fragt Gemini nach einem Preis.
+ * @param {string} prompt - Der Textbefehl an die KI.
+ * @returns {Promise<number>} - Der Preis als Zahl.
+ */
+async function getPriceFromAI(prompt) {
   try {
-    console.log('🚀 Starte Camunda Worker...');
-
-    const zbc = new ZBClient('localhost:26500', {
-      loglevel: 'INFO',
-      retry: true,
-    });
-
-    console.log('✅ Verbunden mit Zeebe');
-
-    // ------------------------------------------------------------
-    // 1. Anfrage schreiben
-    // ------------------------------------------------------------
-    zbc.createWorker({
-      taskType: 'anfrage-schreiben',
-      taskHandler: async (job) => {
-        console.log('\n=== 1. Anfrage schreiben ===');
-        console.log('📊 Empfangene Variablen:', job.variables);
-
-        const nachrichtVomUser1 = job.variables.berg;
-        const nachrichtVomUser2 = job.variables.datum;
-
-        const eindeutigeAnfrageID = job.processInstanceKey;
-
-        console.log(`🔑 Erzeuge eindeutige AnfrageID: ${eindeutigeAnfrageID}`);
-
-        await job.complete({
-          anfrageID: eindeutigeAnfrageID,
-          berg: nachrichtVomUser1,
-          datum: nachrichtVomUser2
-        });
-
-        console.log(`✅ "Anfrage stellen" abgeschlossen.`);
-      }
-    });
-
-    // ------------------------------------------------------------
-    // 2. Angebot erstellen
-    // ------------------------------------------------------------
-    zbc.createWorker({
-      taskType: 'angebot-erstellen',
-      taskHandler: async (job) => {
-        console.log('\n=== 2. Angebot erstellen ===');
-        console.log('📊 Empfangene Variablen:', job.variables);
-
-        const anfrageID = job.variables.anfrageID;
-        const bergWunsch = job.variables.berg;
-        const hotelkosten = job.variables.hotelAngebot
-        const flugkosten = job.variables.flugAngebot;
-
-        const angebotText =
-          `Hier ist dein Angebot für die Reise zum ${bergWunsch}: Flug (${flugkosten} EUR) + Unterkunft (${hotelkosten} EUR).`;
-
-        console.log(`📝 Angebot erstellt: ${angebotText}`);
-
-        await job.complete({
-          angebot: angebotText,
-          anfrageID: anfrageID
-        });
-
-        console.log(`✅ "Angebot erstellen" abgeschlossen.`);
-      }
-    });
-
-    // ------------------------------------------------------------
-    // 3. Absage erstellen
-    // ------------------------------------------------------------
-    zbc.createWorker({
-      taskType: 'absage-erstellen',
-      taskHandler: async (job) => {
-        console.log('\n=== 3. Absage erstellen ===');
-        console.log('📊 Empfangene Variablen:', job.variables);
-
-        const anfrageID = job.variables.anfrageID;
-        const bergWunsch = job.variables.berg;
-
-        const absageText = `Der Berg ${bergWunsch} wird leider nicht unterstützt.`;
-
-        console.log(`📝 Absage erstellt: ${absageText}`);
-
-        await job.complete({
-          absage: absageText,
-          anfrageID: anfrageID
-        });
-
-        console.log(`✅ "Absage erstellen" abgeschlossen.`);
-      }
-    });
-
-    // ------------------------------------------------------------
-    // 4. Zusage schreiben
-    // ------------------------------------------------------------
-    zbc.createWorker({
-      taskType: 'zusage-schreiben',
-      taskHandler: async (job) => {
-        console.log('\n=== 4. Zusage schreiben ===');
-        console.log('📊 Empfangene Variablen:', job.variables);
-
-        const korrelationsID = job.variables.anfrageID;
-        const antwortText = "Das ist die finale Antwort an den Kunden.";
-
-        console.log(`📝 Antwort erstellt: ${antwortText}`);
-        console.log(`🔑 Korrelationsschlüssel: ${korrelationsID}`);
-
-        await job.complete({
-          anfrageID: korrelationsID,
-          Antwort: antwortText
-        });
-
-        console.log(`✅ "Zusage schreiben" abgeschlossen.`);
-      }
-    });
-
-    // ------------------------------------------------------------
-    // 5. Hotelanfrage schreiben
-    // ------------------------------------------------------------
-    zbc.createWorker({
-      taskType: 'hotelanfrage-schreiben',
-      taskHandler: async (job) => {
-        console.log('\n=== Hotelanfrage schreiben ===');
-        console.log('📊 Empfangene Variablen:', job.variables);
-
-        const reiseDatum = job.variables.datum;
-        const hotelAnfrageID = job.processInstanceKey;
-
-        console.log(`🔑 Hotel-Korrelationsschlüssel: ${hotelAnfrageID}`);
-
-        await job.complete({
-          datum: reiseDatum,
-          hotelAnfrageID: hotelAnfrageID
-        });
-
-        console.log('✅ "Hotelanfrage schreiben" abgeschlossen.');
-      }
-    });
-
-    // ------------------------------------------------------------
-    // 6. Hotel-Angebot senden
-    // ------------------------------------------------------------
-    zbc.createWorker({
-      taskType: 'hotel-angebot-senden',
-      taskHandler: async (job) => {
-        console.log('\n=== Hotel-Angebot senden ===');
-        console.log('📊 Empfangene Variablen:', job.variables);
-
-        const angefragtesDatum = job.variables.datum;
-        const korrelationsID = job.variables.hotelAnfrageID;
-        const angebotHotel = job.variables.Hotelangebot;
-
-        await job.complete({
-          hotelAngebot: angebotHotel,
-          hotelAnfrageID: korrelationsID
-        });
-
-        console.log('✅ "Hotel-Angebot senden" abgeschlossen.');
-      }
-    });
-
-    // ------------------------------------------------------------
-    // 7. Fluganfrage schreiben
-    // ------------------------------------------------------------
-    zbc.createWorker({
-      taskType: 'fluganfrage-schreiben',
-      taskHandler: async (job) => {
-        console.log('\n=== Fluganfrage schreiben ===');
-        console.log('📊 Empfangene Variablen:', job.variables);
-
-        const flugWunsch = job.variables.berg;
-        const flugDatum = job.variables.datum;
-        const flugAnfrageID = job.processInstanceKey;
-
-        await job.complete({
-          flugZiel: flugWunsch,
-          flugDatum: flugDatum,
-          flugAnfrageID: flugAnfrageID
-        });
-
-        console.log('✅ "Fluganfrage schreiben" abgeschlossen.');
-      }
-    });
-
-    // ------------------------------------------------------------
-    // 8. Flug-Angebot senden
-    // ------------------------------------------------------------
-    zbc.createWorker({
-      taskType: 'flug-angebot-senden',
-      taskHandler: async (job) => {
-        console.log('\n=== Flug-Angebot senden ===');
-        console.log('📊 Empfangene Variablen:', job.variables);
-
-        const angefragtesZiel = job.variables.flugZiel;
-        const korrelationsID = job.variables.flugAnfrageID;
-        const angebotFlug = job.variables.Flugangebot;
-
-        await job.complete({
-          flugAngebot: angebotFlug,
-          flugAnfrageID: korrelationsID
-        });
-
-        console.log('✅ "Flug-Angebot senden" abgeschlossen.');
-      }
-    });
-
-    // ------------------------------------------------------------
-    // 9. Zahlungsaufforderung erstellen
-    // ------------------------------------------------------------
-    zbc.createWorker({
-      taskType: 'zahlungsaufforderung-erstellen',
-      taskHandler: async (job) => {
-        console.log('\n=== Zahlungsaufforderung erstellen ===');
-        console.log('📊 Empfangene Variablen:', job.variables);
-
-        const korrelationsID = job.variables.anfrageID;
-        const zahlungsText = "Bitte begleichen Sie den offenen Betrag von 750 EUR.";
-
-        await job.complete({
-          anfrageID: korrelationsID,
-          Zahlungsaufforderung: zahlungsText
-        });
-
-        console.log('✅ "Zahlungsaufforderung erstellen" abgeschlossen.');
-      }
-    });
-
-    // ------------------------------------------------------------
-    // 10. Zahlung vorbereiten
-    // ------------------------------------------------------------
-    zbc.createWorker({
-      taskType: 'zahlung-vorbereiten',
-      taskHandler: async (job) => {
-        console.log('\n=== Zahlung vorbereiten ===');
-        console.log('📊 Empfangene Variablen:', job.variables);
-
-        const anfrageID = job.variables.anfrageID;
-        const betrag = 750;
-
-        await job.complete({
-          zahlungsID: anfrageID,
-          anfrageID: anfrageID,
-          Betrag: betrag
-        });
-
-        console.log('✅ "Zahlung vorbereiten" abgeschlossen.');
-      }
-    });
-
-    // ------------------------------------------------------------
-    // 11. Bank-Zahlung vorbereiten
-    // ------------------------------------------------------------
-    zbc.createWorker({
-      taskType: 'bank-zahlung-vorbereiten',
-      taskHandler: async (job) => {
-        console.log('\n=== Bank-Zahlung vorbereiten ===');
-        console.log('📊 Empfangene Variablen:', job.variables);
-
-        const verwendungszweck = job.variables.Verwendungszweck;
-        const betrag = 750;
-
-        await job.complete({
-          anfrageID: verwendungszweck,
-          Zahlung: betrag
-        });
-
-        console.log('✅ "Bank-Zahlung vorbereiten" abgeschlossen.');
-      }
-    });
-
-    // ------------------------------------------------------------
-    // 12. Bank-Zahlungsbestätigung vorbereiten
-    // ------------------------------------------------------------
-    zbc.createWorker({
-      taskType: 'bank-zahlungsbestätigung-vorbereiten',
-      taskHandler: async (job) => {
-        console.log('\n=== Bank-Zahlungsbestätigung vorbereiten ===');
-        console.log('📊 Empfangene Variablen:', job.variables);
-
-        const zahlungsID = job.variables.zahlungsID;
-        const betrag = 750;
-
-        await job.complete({
-          zahlungsID: zahlungsID,
-          Betrag: betrag
-        });
-
-        console.log('✅ "Bank-Zahlungsbestätigung vorbereiten" abgeschlossen.');
-      }
-    });
-
-    // ------------------------------------------------------------
-    // 13. Hotel-Zahlung vorbereiten
-    // ------------------------------------------------------------
-    zbc.createWorker({
-      taskType: 'hotel-zahlung-vorbereiten',
-      taskHandler: async (job) => {
-        console.log('\n=== Hotel-Zahlung vorbereiten ===');
-        console.log('📊 Empfangene Variablen:', job.variables);
-
-        const korrelationsID = job.variables.hotelAnfrageID;
-        const reiseDatum = job.variables.datum;
-
-        await job.complete({
-          hotelAnfrageID: korrelationsID,
-          datum: reiseDatum
-        });
-
-        console.log('✅ "Hotel-Zahlung vorbereiten" abgeschlossen.');
-      }
-    });
-
-    // ------------------------------------------------------------
-    // 14. Flug-Zahlung vorbereiten
-    // ------------------------------------------------------------
-    zbc.createWorker({
-      taskType: 'flug-zahlung-vorbereiten',
-      taskHandler: async (job) => {
-        console.log('\n=== Flug-Zahlung vorbereiten ===');
-        console.log('📊 Empfangene Variablen:', job.variables);
-
-        const korrelationsID = job.variables.flugAnfrageID;
-        const reiseDatum = job.variables.datum;
-
-        await job.complete({
-          flugAnfrageID: korrelationsID,
-          datum: reiseDatum
-        });
-
-        console.log('✅ "Flug-Zahlung vorbereiten" abgeschlossen.');
-      }
-    });
-
-    // ------------------------------------------------------------
-    // 15. Flug-Zahlungsbestätigung senden
-    // ------------------------------------------------------------
-    zbc.createWorker({
-      taskType: 'flug-zahlungsbestätigung-senden',
-      taskHandler: async (job) => {
-        console.log('\n=== Flug-Zahlungsbestätigung senden ===');
-        console.log('📊 Empfangene Variablen:', job.variables);
-
-        const korrelationsID = job.variables.flugAnfrageID;
-        const text = "Ihre Flug-Zahlung wurde erfolgreich verbucht. Vielen Dank.";
-
-        await job.complete({
-          flugAnfrageID: korrelationsID,
-          flugbestätigung: text
-        });
-
-        console.log('✅ "Flug-Zahlungsbestätigung senden" abgeschlossen.');
-      }
-    });
-
-    // ------------------------------------------------------------
-    // 16. Hotel-Zahlungsbestätigung senden
-    // ------------------------------------------------------------
-    zbc.createWorker({
-      taskType: 'hotel-zahlungsbestätigung-senden',
-      taskHandler: async (job) => {
-        console.log('\n=== Hotel-Zahlungsbestätigung senden ===');
-        console.log('📊 Empfangene Variablen:', job.variables);
-
-        const korrelationsID = job.variables.hotelAnfrageID;
-        const text = "Ihre Hotel-Zahlung wurde erfolgreich verbucht. Wir freuen uns auf Sie.";
-
-        await job.complete({
-          hotelAnfrageID: korrelationsID,
-          hotelbestätigung: text
-        });
-
-        console.log('✅ "Hotel-Zahlungsbestätigung senden" abgeschlossen.');
-      }
-    });
-
-    zbc.createWorker({
-  taskType: 'buchungsbestätigung-vorbereiten',
-  taskHandler: async (job) => {
-    console.log('\n=== Finale Buchungsbestätigung vorbereiten ===');
-    console.log('📊 Empfangene Variablen:', job.variables);
-
-    const korrelationsID = job.variables.anfrageID;
-
-    const buchungsText = "Ihre Reise ist nun vollständig gebucht. Gute Reise!";
-
-    console.log(`🔑 ID für Korrelation & Payload (anfrageID): ${korrelationsID}`);
-    console.log(`📝 Finale Buchung: ${buchungsText}`);
-
-    await job.complete({
-      anfrageID: korrelationsID,
-      buchungsbestätigung: buchungsText
-    });
-
-    console.log(`✅ "Buchungsbestätigung vorbereiten" abgeschlossen.`);
-  }
-});
-
-  } catch (err) {
-    console.error('❌ Fehler im Worker:', err);
+    const model = genAI.getGenerativeModel({ model: AI_MODEL_NAME });
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    console.log(`📝 KI Roh-Antwort: ${text}`);
+
+    // Zahl säubern und zurückgeben
+    const price = Number(text.replace(/[^0-9]/g, ''));
+    console.log(`💰 Extrahierter Preis: ${price}`);
+    return price;
+
+  } catch (error) {
+    console.error("❌ KI Fehler:", error.message);
+    throw error; // Fehler weiterwerfen, damit der Worker failen kann
   }
 }
 
+// ============================================================
+// 🛠️ WORKER DEFINITIONEN
+// Hier definieren wir, was bei welchem Task passiert.
+// ============================================================
+const workers = [
+  {
+    type: 'anfrage-schreiben',
+    handler: async (job) => {
+      console.log('\n=== 1. Anfrage schreiben ===');
+      const { berg, datum } = job.variables;
+      const anfrageID = job.processInstanceKey;
 
+      console.log(`🔑 Erzeuge AnfrageID: ${anfrageID}`);
 
-// Programm starten
+      return {
+        anfrageID: anfrageID,
+        berg: berg,
+        datum: datum
+      };
+    }
+  },
+  {
+    type: 'angebot-erstellen',
+    handler: async (job) => {
+      console.log('\n=== 2. Angebot erstellen ===');
+      const { anfrageID, berg, hotelAngebot, flugAngebot } = job.variables;
+
+      const text = `Hier ist dein Angebot für die Reise zum ${berg}: Flug (${flugAngebot} EUR) + Unterkunft (${hotelAngebot} EUR).`;
+      console.log(`📝 Angebot erstellt: ${text}`);
+
+      return { angebot: text, anfrageID };
+    }
+  },
+  {
+    type: 'absage-erstellen',
+    handler: async (job) => {
+      console.log('\n=== 3. Absage erstellen ===');
+      const { anfrageID, berg } = job.variables;
+      const text = `Der Berg ${berg} wird leider nicht unterstützt.`;
+
+      return { absage: text, anfrageID };
+    }
+  },
+  {
+    type: 'zusage-schreiben',
+    handler: async (job) => {
+      console.log('\n=== 4. Zusage schreiben ===');
+      const { anfrageID } = job.variables;
+      const text = "Das ist die finale Antwort an den Kunden.";
+
+      return { anfrageID, Antwort: text };
+    }
+  },
+  {
+    type: 'hotelanfrage-schreiben',
+    handler: async (job) => {
+      console.log('\n=== Hotelanfrage schreiben ===');
+      const { datum, berg } = job.variables;
+      const hotelAnfrageID = job.processInstanceKey;
+
+      return {
+        datum,
+        hotelAnfrageID,
+        hotelStandort: berg
+      };
+    }
+  },
+  {
+    type: 'hotel-angebot-senden',
+    handler: async (job) => {
+      console.log('\n=== Hotel-Angebot senden ===');
+      const { hotelAnfrageID, Hotelangebot } = job.variables;
+
+      return {
+        hotelAngebot: Hotelangebot,
+        hotelAnfrageID
+      };
+    }
+  },
+  {
+    type: 'fluganfrage-schreiben',
+    handler: async (job) => {
+      console.log('\n=== Fluganfrage schreiben ===');
+      const { berg, datum } = job.variables;
+      const flugAnfrageID = job.processInstanceKey;
+
+      return {
+        flugZiel: berg,
+        flugDatum: datum,
+        flugAnfrageID
+      };
+    }
+  },
+  {
+    type: 'flug-angebot-erstellen-smart',
+    handler: async (job) => {
+      console.log('\n=== 🤖 KI generiert Flugangebot ===');
+      const { flugZiel, flugDatum, flugAnfrageID } = job.variables;
+
+      const prompt = `
+        Schätze einen realistischen Flugpreis (nur die Zahl und in Euro) für:
+        - Ziel: ${flugZiel}
+        - Datum: ${flugDatum}
+        Antworte nur mit der Zahl (z.B. 350). Keine Währung.
+      `;
+
+      // Wir nutzen unsere Hilfsfunktion
+      const price = await getPriceFromAI(prompt);
+
+      return {
+        flugAngebot: price,
+        flugAnfrageID
+      };
+    }
+  },
+  {
+    type: 'hotel-angebot-erstellen-smart',
+    handler: async (job) => {
+      console.log('\n=== 🏨 KI generiert HOTEL-Angebot ===');
+      // Fallback Logik beibehalten
+      const zielOrt = job.variables.hotelStandort || job.variables.berg;
+      const { datum, hotelAnfrageID } = job.variables;
+
+      const prompt = `
+        Schätze einen realistischen Hotelpreis pro Nacht (nur die Zahl und in Euro) für:
+        - Ziel: ${zielOrt}
+        - Datum: ${datum}
+        Antworte nur mit der Zahl (z.B. 120). Keine Währung.
+      `;
+
+      const price = await getPriceFromAI(prompt);
+
+      return {
+        hotelAngebot: price,
+        hotelAnfrageID
+      };
+    }
+  },
+  {
+    type: 'flug-angebot-senden',
+    handler: async (job) => {
+      console.log('\n=== Flug-Angebot senden ===');
+      const { flugZiel, flugAnfrageID, Flugangebot } = job.variables;
+
+      return {
+        flugAngebot: Flugangebot,
+        flugAnfrageID
+      };
+    }
+  },
+  {
+    type: 'zahlungsaufforderung-erstellen',
+    handler: async (job) => {
+      console.log('\n=== Zahlungsaufforderung erstellen ===');
+      const { anfrageID } = job.variables;
+      const text = "Bitte begleichen Sie den offenen Betrag von 750 EUR.";
+
+      return { anfrageID, Zahlungsaufforderung: text };
+    }
+  },
+  {
+    type: 'zahlung-vorbereiten',
+    handler: async (job) => {
+      console.log('\n=== Zahlung vorbereiten ===');
+      const { anfrageID } = job.variables;
+      const betrag = 750; // Könnte man später auch berechnen: hotel + flug
+
+      return {
+        zahlungsID: anfrageID,
+        anfrageID,
+        Betrag: betrag
+      };
+    }
+  },
+  {
+    type: 'bank-zahlung-vorbereiten',
+    handler: async (job) => {
+      console.log('\n=== Bank-Zahlung vorbereiten ===');
+      const { Verwendungszweck } = job.variables;
+      const betrag = 750;
+
+      return {
+        anfrageID: Verwendungszweck,
+        Zahlung: betrag
+      };
+    }
+  },
+  {
+    type: 'bank-zahlungsbestätigung-vorbereiten',
+    handler: async (job) => {
+      console.log('\n=== Bank-Zahlungsbestätigung vorbereiten ===');
+      const { zahlungsID } = job.variables;
+      const betrag = 750;
+
+      return { zahlungsID, Betrag: betrag };
+    }
+  },
+  {
+    type: 'hotel-zahlung-vorbereiten',
+    handler: async (job) => {
+      console.log('\n=== Hotel-Zahlung vorbereiten ===');
+      const { hotelAnfrageID, datum } = job.variables;
+      return { hotelAnfrageID, datum };
+    }
+  },
+  {
+    type: 'flug-zahlung-vorbereiten',
+    handler: async (job) => {
+      console.log('\n=== Flug-Zahlung vorbereiten ===');
+      const { flugAnfrageID, datum } = job.variables;
+      return { flugAnfrageID, datum };
+    }
+  },
+  {
+    type: 'flug-zahlungsbestätigung-senden',
+    handler: async (job) => {
+      console.log('\n=== Flug-Zahlungsbestätigung senden ===');
+      const { flugAnfrageID } = job.variables;
+      const text = "Ihre Flug-Zahlung wurde erfolgreich verbucht. Vielen Dank.";
+      return { flugAnfrageID, flugbestätigung: text };
+    }
+  },
+  {
+    type: 'hotel-zahlungsbestätigung-senden',
+    handler: async (job) => {
+      console.log('\n=== Hotel-Zahlungsbestätigung senden ===');
+      const { hotelAnfrageID } = job.variables;
+      const text = "Ihre Hotel-Zahlung wurde erfolgreich verbucht. Wir freuen uns auf Sie.";
+      return { hotelAnfrageID, hotelbestätigung: text };
+    }
+  },
+  {
+    type: 'buchungsbestätigung-vorbereiten',
+    handler: async (job) => {
+      console.log('\n=== Finale Buchungsbestätigung vorbereiten ===');
+      const { anfrageID } = job.variables;
+      const text = "Ihre Reise ist nun vollständig gebucht. Gute Reise!";
+      
+      console.log(`📝 Finale Buchung: ${text}`);
+      return { anfrageID, buchungsbestätigung: text };
+    }
+  },
+  {
+    type: 'anfrage-pruefen',
+    handler: async (job) => {
+      console.log('\n=== Anfrage prüfen (Blacklist) ===');
+      const { berg, anfrageID } = job.variables;
+
+      const blacklist = ['Pöstlingberg', 'Mount Everest', 'Mont Blanc'];
+      let istMoeglich = "ja";
+
+      if (blacklist.includes(berg)) {
+        istMoeglich = "nein";
+        console.log(`❌ Berg "${berg}" ist auf der Sperrliste.`);
+      } else {
+        console.log(`✅ Berg "${berg}" ist machbar.`);
+      }
+
+      return { moeglich: istMoeglich, anfrageID };
+    }
+  }
+];
+
+// ============================================================
+// 🚀 MAIN FUNCTION
+// Startet alle Worker
+// ============================================================
+async function main() {
+  try {
+    console.log('🚀 Starte Camunda Worker...');
+    console.log('✅ Verbunden mit Zeebe');
+
+    // Wir gehen durch unsere Liste und erstellen für jeden Eintrag einen Worker
+    workers.forEach(({ type, handler }) => {
+      
+      zbc.createWorker({
+        taskType: type,
+        taskHandler: async (job) => {
+          try {
+            // Wir führen die Logik aus und holen uns die Variablen, die zurückgegeben werden sollen
+            const variablesToComplete = await handler(job);
+            
+            // Job erfolgreich abschließen
+            await job.complete(variablesToComplete);
+            console.log(`✅ Task "${type}" abgeschlossen.\n`);
+            
+          } catch (error) {
+            console.error(`❌ Fehler im Task "${type}":`, error.message);
+            // Job failen (retry wird durch Zeebe gesteuert)
+            await job.fail("WORKER_ERROR", error.message);
+          }
+        }
+      });
+      
+      console.log(`🔧 Worker registriert: ${type}`);
+    });
+
+  } catch (err) {
+    console.error('❌ Kritischer Fehler beim Starten:', err);
+  }
+}
+
+// Start!
 main();

@@ -14,6 +14,10 @@ kann sein dass man was löschen muss: C:\camunda8\camunda8-getting-started-bundl
 
 ## 3. Fenster (Worker starten):
 cd "C:\Users\flori\OneDrive\Desktop\agents"
+### Gemini hinzufügen
+npm install @google/genai
+
+### Programm starten
 npm start
 
 
