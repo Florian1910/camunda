@@ -4,7 +4,7 @@
     <bpmn:participant id="Participant_0aft3sf" name="Reisebüro" processRef="Process_1d8hhdg" />
     <bpmn:participant id="Participant_1a3670g" name="Fluggesellschaft" processRef="Process_1chwu3o" />
     <bpmn:participant id="Participant_0j09d4n" name="Hotel" processRef="Process_15ce514" />
-    <bpmn:participant id="Participant_0k9lzxl" name="Bergsteiger" processRef="Enis" />
+    <bpmn:participant id="Participant_0k9lzxl" name="Bergsteiger" processRef="smart_v1" />
     <bpmn:participant id="Participant_072vnck" name="Bank" processRef="Process_1mv98xx" />
     <bpmn:messageFlow id="Flow_1y7yhcu" sourceRef="Event_06axo8f" targetRef="Event_1k0zyln" />
     <bpmn:messageFlow id="Flow_0lxmc76" sourceRef="Event_0mneuq1" targetRef="Event_1kfshwp" />
@@ -25,27 +25,6 @@
     <bpmn:messageFlow id="Flow_170y8d0" sourceRef="Event_1hh87bt" targetRef="Event_1amq4fl" />
     <bpmn:messageFlow id="Flow_0a8rx7t" sourceRef="Event_1fi48sd" targetRef="Event_1gw2wei" />
     <bpmn:messageFlow id="Flow_14oxrg8" sourceRef="Event_05ju49v" targetRef="Event_0tjccay" />
-    <bpmn:textAnnotation id="TextAnnotation_1xj20ra">
-      <bpmn:text>hier könnte man den prozess schlau machen
-z.B: gewisse werden automatisch abgelehnt</bpmn:text>
-    </bpmn:textAnnotation>
-    <bpmn:association id="Association_1qu6ouz" associationDirection="None" sourceRef="Activity_1h21kyf" targetRef="TextAnnotation_1xj20ra" />
-    <bpmn:textAnnotation id="TextAnnotation_0yaf16a">
-      <bpmn:text>schlauer machen: Angebot wird automatisch erstellt</bpmn:text>
-    </bpmn:textAnnotation>
-    <bpmn:association id="Association_0gbbwl4" associationDirection="None" sourceRef="Activity_0mytqmz" targetRef="TextAnnotation_0yaf16a" />
-    <bpmn:textAnnotation id="TextAnnotation_0awvn8s">
-      <bpmn:text>schlauer machen: Angebot wird automatisch erstellt</bpmn:text>
-    </bpmn:textAnnotation>
-    <bpmn:association id="Association_0aagmej" associationDirection="None" sourceRef="Activity_0filyr8" targetRef="TextAnnotation_0awvn8s" />
-    <bpmn:textAnnotation id="TextAnnotation_1irf1uo">
-      <bpmn:text>dumm machen vorab manuell prüfen ob genug monteäre mittel vorhaden</bpmn:text>
-    </bpmn:textAnnotation>
-    <bpmn:association id="Association_1wimtsi" associationDirection="None" sourceRef="Activity_0dhf8ek" targetRef="TextAnnotation_1irf1uo" />
-    <bpmn:textAnnotation id="TextAnnotation_05o75to">
-      <bpmn:text>dumm machen: vorher Buchungsbestätitung selber schreiben</bpmn:text>
-    </bpmn:textAnnotation>
-    <bpmn:association id="Association_0r5s9te" associationDirection="None" sourceRef="Activity_1xdwi3l" targetRef="TextAnnotation_05o75to" />
   </bpmn:collaboration>
   <bpmn:message id="Message_1g4iu37" name="e8aa6722-ab6f-4def-b5b4-268691f24039">
     <bpmn:extensionElements>
@@ -85,21 +64,9 @@ z.B: gewisse werden automatisch abgelehnt</bpmn:text>
       <bpmn:outgoing>Flow_1fy67l4</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:startEvent id="Event_0bww7q2" name="Anfrage erhalten">
-      <bpmn:outgoing>Flow_02knkyh</bpmn:outgoing>
+      <bpmn:outgoing>Flow_0zev57d</bpmn:outgoing>
       <bpmn:messageEventDefinition id="MessageEventDefinition_0g21df6" messageRef="Message_0t7uri1" />
     </bpmn:startEvent>
-    <bpmn:userTask id="Activity_1h21kyf" name="Anfrage überprüfen">
-      <bpmn:extensionElements>
-        <zeebe:userTask />
-        <zeebe:assignmentDefinition assignee="demo" />
-        <zeebe:ioMapping>
-          <zeebe:input source="=&#34;&#34;" target="moeglich" />
-          <zeebe:output source="=moeglich" target="moeglich" />
-        </zeebe:ioMapping>
-      </bpmn:extensionElements>
-      <bpmn:incoming>Flow_02knkyh</bpmn:incoming>
-      <bpmn:outgoing>Flow_03odnml</bpmn:outgoing>
-    </bpmn:userTask>
     <bpmn:serviceTask id="Activity_0zkx6fj" name="Angebot erstellen">
       <bpmn:extensionElements>
         <zeebe:taskDefinition type="angebot-erstellen" />
@@ -171,9 +138,7 @@ z.B: gewisse werden automatisch abgelehnt</bpmn:text>
       <bpmn:incoming>Flow_02rbdfv</bpmn:incoming>
     </bpmn:endEvent>
     <bpmn:sequenceFlow id="Flow_00a3145" sourceRef="Activity_0hwiykr" targetRef="Event_0feftk6" />
-    <bpmn:sequenceFlow id="Flow_02knkyh" sourceRef="Event_0bww7q2" targetRef="Activity_1h21kyf" />
     <bpmn:sequenceFlow id="Flow_02rbdfv" sourceRef="Event_1fi48sd" targetRef="Event_1kdneuu" />
-    <bpmn:sequenceFlow id="Flow_03odnml" sourceRef="Activity_1h21kyf" targetRef="Gateway_0ee2san" />
     <bpmn:sequenceFlow id="Flow_04vjw5q" sourceRef="Gateway_0dpkfr6" targetRef="Activity_0qkcf7tv2" />
     <bpmn:sequenceFlow id="Flow_07y0j6t" sourceRef="Activity_0qkcf7tv2" targetRef="Event_1ag9oo5v2" />
     <bpmn:sequenceFlow id="Flow_0bm9gra" sourceRef="Event_0ac7xm0" targetRef="Gateway_08j4vmv" />
@@ -357,7 +322,7 @@ z.B: gewisse werden automatisch abgelehnt</bpmn:text>
         <zeebe:taskDefinition type="io.camunda:sendMessage:1" retries="3" />
         <zeebe:ioMapping>
           <zeebe:input source="Reisebuero_MSG_Hotelanfrage_Start" target="messageName" />
-          <zeebe:input source="={&#34;datum&#34;: datum, &#34;hotelAnfrageID&#34;: hotelAnfrageID}" target="variables" />
+          <zeebe:input source="={&#34;datum&#34;: datum, &#34;hotelAnfrageID&#34;: hotelAnfrageID,&#34;hotelStandort&#34;: hotelStandort}" target="variables" />
           <zeebe:input source="publish" target="correlationType.type" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
@@ -382,7 +347,7 @@ z.B: gewisse werden automatisch abgelehnt</bpmn:text>
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=moeglich = "ja"</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:exclusiveGateway id="Gateway_0ee2san" name="Möglich?">
-      <bpmn:incoming>Flow_03odnml</bpmn:incoming>
+      <bpmn:incoming>Flow_0pnaz2t</bpmn:incoming>
       <bpmn:outgoing>Flow_0z2acsx</bpmn:outgoing>
       <bpmn:outgoing>Flow_1c4g0kh</bpmn:outgoing>
     </bpmn:exclusiveGateway>
@@ -470,6 +435,15 @@ z.B: gewisse werden automatisch abgelehnt</bpmn:text>
       <bpmn:incoming>Flow_1fy67l4</bpmn:incoming>
       <bpmn:messageEventDefinition id="MessageEventDefinition_04jjjbf" />
     </bpmn:intermediateThrowEvent>
+    <bpmn:serviceTask id="Activity_1j64bdx" name="Anfrage prüfen">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="anfrage-pruefen" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0zev57d</bpmn:incoming>
+      <bpmn:outgoing>Flow_0pnaz2t</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_0zev57d" sourceRef="Event_0bww7q2" targetRef="Activity_1j64bdx" />
+    <bpmn:sequenceFlow id="Flow_0pnaz2t" sourceRef="Activity_1j64bdx" targetRef="Gateway_0ee2san" />
   </bpmn:process>
   <bpmn:process id="Process_1chwu3o" name="Fluggesellschaft" isExecutable="true">
     <bpmn:intermediateThrowEvent id="Event_1hh87bt" name="Bestätigung senden" zeebe:modelerTemplate="io.camunda.connectors.message.intermediate.v1" zeebe:modelerTemplateVersion="0" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZwogICB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciCiAgIHdpZHRoPSIyMDAwIgogICBoZWlnaHQ9IjIwMDAiCiAgIHZpZXdCb3g9IjAgMCAyMDAwIDIwMDAiCiAgIHByZXNlcnZlQXNwZWN0UmF0aW89InhNaWRZTWlkIj4KICA8cGF0aAogICAgIHN0eWxlPSJjb2xvcjojMDAwMDAwIgogICAgIGQ9Im0gMCwyODQgMjAwMCwwIC0xMDAwLDU1NCB6Ii8+CiAgPHBhdGgKICAgICBzdHlsZT0iY29sb3I6IzAwMDAwMCIKICAgICBkPSJtIDAsNDUyIDEwMDAsNTQ4IDEwMDAsLTU0OCAwLDEwOTYgLTIwMDAsMCB6Ii8+Cjwvc3ZnPgo=">
@@ -549,18 +523,13 @@ z.B: gewisse werden automatisch abgelehnt</bpmn:text>
       <bpmn:outgoing>Flow_0c6rau6</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:sequenceFlow id="Flow_11f09ew" sourceRef="Activity_0mytqmz" targetRef="Activity_1uafrs1" />
-    <bpmn:userTask id="Activity_0mytqmz" name="Angebot erstellen">
+    <bpmn:serviceTask id="Activity_0mytqmz" name="Angebot erstellen">
       <bpmn:extensionElements>
-        <zeebe:userTask />
-        <zeebe:assignmentDefinition assignee="demo" />
-        <zeebe:ioMapping>
-          <zeebe:input source="=&#34;&#34;" target="Flugangebot" />
-          <zeebe:output source="=Flugangebot" target="Flugangebot" />
-        </zeebe:ioMapping>
+        <zeebe:taskDefinition type="flug-angebot-erstellen-smart" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_0bwyj2n</bpmn:incoming>
       <bpmn:outgoing>Flow_11f09ew</bpmn:outgoing>
-    </bpmn:userTask>
+    </bpmn:serviceTask>
   </bpmn:process>
   <bpmn:message id="Message_0t7uri1" name="Reisebuero_MSG_Anfrage_Start" />
   <bpmn:message id="Message_2372gj6" name="MSG_Angebot_Zusage">
@@ -656,18 +625,13 @@ z.B: gewisse werden automatisch abgelehnt</bpmn:text>
       <bpmn:outgoing>Flow_179axas</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:sequenceFlow id="Flow_1vfa18v" sourceRef="Activity_0filyr8" targetRef="Activity_02njio2" />
-    <bpmn:userTask id="Activity_0filyr8" name="Angebot erstellen">
+    <bpmn:serviceTask id="Activity_0filyr8" name="Angebot erstellen">
       <bpmn:extensionElements>
-        <zeebe:userTask />
-        <zeebe:assignmentDefinition assignee="demo" />
-        <zeebe:ioMapping>
-          <zeebe:input source="=&#34;&#34;" target="Hotelangebot" />
-          <zeebe:output source="=Hotelangebot" target="Hotelangebot" />
-        </zeebe:ioMapping>
+        <zeebe:taskDefinition type="hotel-angebot-erstellen-smart" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_0wjchz5</bpmn:incoming>
       <bpmn:outgoing>Flow_1vfa18v</bpmn:outgoing>
-    </bpmn:userTask>
+    </bpmn:serviceTask>
   </bpmn:process>
   <bpmn:message id="Message_2j2vrsu" name="MSG_Flug_reserviert">
     <bpmn:extensionElements>
@@ -689,7 +653,7 @@ z.B: gewisse werden automatisch abgelehnt</bpmn:text>
       <zeebe:subscription correlationKey="= flugAnfrageID" />
     </bpmn:extensionElements>
   </bpmn:message>
-  <bpmn:process id="Enis" name="Bergsteiger" isExecutable="true">
+  <bpmn:process id="smart_v1" name="Bergsteiger" isExecutable="true">
     <bpmn:serviceTask id="Activity_1unieqa" name="Anfrage schreiben">
       <bpmn:extensionElements>
         <zeebe:taskDefinition type="anfrage-schreiben" />
@@ -1117,9 +1081,6 @@ z.B: gewisse werden automatisch abgelehnt</bpmn:text>
           <dc:Bounds x="1289" y="1353" width="81" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="BPMNShape_0tk8crk" bpmnElement="Activity_1h21kyf">
-        <dc:Bounds x="1380" y="1290" width="100" height="80" />
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1xtibbf_di" bpmnElement="Activity_0zkx6fj">
         <dc:Bounds x="2650" y="1380" width="100" height="80" />
         <bpmndi:BPMNLabel />
@@ -1280,21 +1241,17 @@ z.B: gewisse werden automatisch abgelehnt</bpmn:text>
       <bpmndi:BPMNShape id="Event_1t5djbf_di" bpmnElement="Event_0rvv3x8">
         <dc:Bounds x="1822" y="1222" width="36" height="36" />
       </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_14k0eup_di" bpmnElement="Activity_1j64bdx">
+        <dc:Bounds x="1380" y="1290" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_00a3145_di" bpmnElement="Flow_00a3145">
         <di:waypoint x="4150" y="1420" />
         <di:waypoint x="4242" y="1420" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="BPMNEdge_1fjzsoe" bpmnElement="Flow_02knkyh">
-        <di:waypoint x="1318" y="1330" />
-        <di:waypoint x="1380" y="1330" />
-      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_02rbdfv_di" bpmnElement="Flow_02rbdfv">
         <di:waypoint x="6018" y="1420" />
         <di:waypoint x="6132" y="1420" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_03odnml_di" bpmnElement="Flow_03odnml">
-        <di:waypoint x="1480" y="1330" />
-        <di:waypoint x="1515" y="1330" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_04vjw5q_di" bpmnElement="Flow_04vjw5q">
         <di:waypoint x="1770" y="1445" />
@@ -1456,8 +1413,16 @@ z.B: gewisse werden automatisch abgelehnt</bpmn:text>
         <di:waypoint x="5000" y="1470" />
         <di:waypoint x="5040" y="1470" />
       </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0zev57d_di" bpmnElement="Flow_0zev57d">
+        <di:waypoint x="1318" y="1330" />
+        <di:waypoint x="1380" y="1330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0pnaz2t_di" bpmnElement="Flow_0pnaz2t">
+        <di:waypoint x="1480" y="1330" />
+        <di:waypoint x="1515" y="1330" />
+      </bpmndi:BPMNEdge>
       <bpmndi:BPMNShape id="BPMNShape_1cny721" bpmnElement="Participant_1a3670g" isHorizontal="true">
-        <dc:Bounds x="1900" y="1640" width="3838" height="250" />
+        <dc:Bounds x="1900" y="1640" width="3838" height="310" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="BPMNShape_0nxxejv" bpmnElement="Event_1hh87bt">
@@ -1498,9 +1463,8 @@ z.B: gewisse werden automatisch abgelehnt</bpmn:text>
         <dc:Bounds x="2210" y="1720" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_1otfk96_di" bpmnElement="Activity_0mytqmz">
+      <bpmndi:BPMNShape id="Activity_16h45p2_di" bpmnElement="Activity_0mytqmz">
         <dc:Bounds x="2050" y="1720" width="100" height="80" />
-        <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_053zsqu_di" bpmnElement="Flow_053zsqu">
         <di:waypoint x="4638" y="1760" />
@@ -1578,9 +1542,8 @@ z.B: gewisse werden automatisch abgelehnt</bpmn:text>
       <bpmndi:BPMNShape id="Activity_0bvgu4q_di" bpmnElement="Activity_02njio2">
         <dc:Bounds x="2300" y="2120" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_1kdlac4_di" bpmnElement="Activity_0filyr8">
+      <bpmndi:BPMNShape id="Activity_0yk6lgf_di" bpmnElement="Activity_0filyr8">
         <dc:Bounds x="2130" y="2120" width="100" height="80" />
-        <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_0b5h8nb_di" bpmnElement="Flow_0b5h8nb">
         <di:waypoint x="4688" y="2160" />
@@ -1960,26 +1923,6 @@ z.B: gewisse werden automatisch abgelehnt</bpmn:text>
         <di:waypoint x="5060" y="210" />
         <di:waypoint x="5122" y="210" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Association_1qu6ouz_di" bpmnElement="Association_1qu6ouz">
-        <di:waypoint x="1430" y="1370" />
-        <di:waypoint x="1430" y="1400" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Association_0gbbwl4_di" bpmnElement="Association_0gbbwl4">
-        <di:waypoint x="2138" y="1720" />
-        <di:waypoint x="2150" y="1708" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Association_0aagmej_di" bpmnElement="Association_0aagmej">
-        <di:waypoint x="2218" y="2120" />
-        <di:waypoint x="2230" y="2108" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Association_1wimtsi_di" bpmnElement="Association_1wimtsi">
-        <di:waypoint x="4755" y="170" />
-        <di:waypoint x="4759" y="158" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Association_0r5s9te_di" bpmnElement="Association_0r5s9te">
-        <di:waypoint x="5819" y="1380" />
-        <di:waypoint x="5806" y="1354" />
-      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1y7yhcu_di" bpmnElement="Flow_1y7yhcu">
         <di:waypoint x="2460" y="2142" />
         <di:waypoint x="2460" y="1388" />
@@ -2062,26 +2005,6 @@ z.B: gewisse werden automatisch abgelehnt</bpmn:text>
         <di:waypoint x="2930" y="1402" />
         <di:waypoint x="2930" y="958" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNShape id="TextAnnotation_1xj20ra_di" bpmnElement="TextAnnotation_1xj20ra">
-        <dc:Bounds x="1380" y="1400" width="99.97936387341318" height="112.66762950492841" />
-        <bpmndi:BPMNLabel />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="TextAnnotation_0yaf16a_di" bpmnElement="TextAnnotation_0yaf16a">
-        <dc:Bounds x="2150" y="1640" width="99.99274099883856" height="83.61049036254174" />
-        <bpmndi:BPMNLabel />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="TextAnnotation_0awvn8s_di" bpmnElement="TextAnnotation_0awvn8s">
-        <dc:Bounds x="2230" y="2040" width="99.99274099883856" height="83.61049036254174" />
-        <bpmndi:BPMNLabel />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="TextAnnotation_1irf1uo_di" bpmnElement="TextAnnotation_1irf1uo">
-        <dc:Bounds x="4740" y="60" width="100" height="97.99715423583984" />
-        <bpmndi:BPMNLabel />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="TextAnnotation_05o75to_di" bpmnElement="TextAnnotation_05o75to">
-        <dc:Bounds x="5720" y="1270" width="99.98772501462868" height="83.6553792400077" />
-        <bpmndi:BPMNLabel />
-      </bpmndi:BPMNShape>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
 </bpmn:definitions>

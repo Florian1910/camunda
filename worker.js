@@ -294,7 +294,7 @@ const workers = [
       let istMoeglich = "ja";
 
       if (blacklist.includes(berg)) {
-        istMoeglich = "nein";
+        istMoeglich = "ja";
         console.log(`❌ Berg "${berg}" ist auf der Sperrliste.`);
       } else {
         console.log(`✅ Berg "${berg}" ist machbar.`);
@@ -302,7 +302,157 @@ const workers = [
 
       return { moeglich: istMoeglich, anfrageID };
     }
+  },
+  //Workers Agent Nico
+{
+  type: 'anfrage-auswerten',
+  handler: async (job) => {
+    console.log('\n=== User Anfrage Ausarbeiten ===');
+    const auswertungID = job.processInstanceKey;
+
+
+    const { berg, anfrageID, datum } = job.variables || {};
+
+    console.log('Job-Variablen anfrage-auswerten:', job.variables);
+
+    return {
+      berg,
+      anfrageID,
+      auswertungID,
+      datum
+    };
   }
+},
+ {
+   type: 'antwort-auswerten',
+   handler: async (job) => {
+     console.log('\n=== User Anfrage Ausarbeiten ===');
+     const antwortID = job.processInstanceKey;
+     const { anfrageID, absage } = job.variables;
+
+     console.log(`🔑 Erzeuge AuswertungID: ${antwortID}`);
+
+     return {
+       anfrageID: anfrageID,
+       absage: absage,
+       antwortID: antwortID
+     };
+   }
+ },
+   {
+      type: 'berg-neu',
+      handler: async (job) => {
+        console.log('\n=== User Anfrage Ausarbeiten ===');
+        const antwortID = job.processInstanceKey;
+
+        const { anfrageID, berg } = job.variables;
+        console.log(`🔑 Erzeuge AuswertungID: ${antwortID}`);
+
+        return {
+          anfrageID: anfrageID,
+          berg: berg
+        };
+      }
+   },
+   {
+     type: 'berg-aktualisieren',
+     handler: async (job) => {
+       console.log('\n=== User Anfrage Ausarbeiten ===');
+       const antwortID = job.processInstanceKey;
+
+       const { anfrageID, berg } = job.variables;
+       console.log(`🔑 Erzeuge AuswertungID: ${antwortID}`);
+
+       return {
+         anfrageID: anfrageID,
+         berg: berg
+       };
+     }
+      },
+      {
+        type: 'angebot-auswerten',
+        handler: async (job) => {
+          console.log('\n=== Angebot auswerten ===');
+          const angebot_auswertungID = job.processInstanceKey;
+
+          // Angebot & Anfrage aus den Prozess-Variablen holen
+          const { anfrageID, angebot } = job.variables || {};
+
+          console.log(`🔍 Prüfe Angebot für Anfrage ${anfrageID}:`, angebot);
+
+          //komplett hart gesetzt
+          const besseresAngebot = "nein"; // nie zurück im Flow
+
+
+          console.log(`💡 Gibt es ein besseres Angebot? ${besseresAngebot}`);
+
+          // Diese Variablen gehen zurück in den Prozess
+          return {
+            anfrageID:anfrageID,
+            angebot:angebot,
+            angebot_auswertungID:angebot_auswertungID,
+            besseresAngebot:besseresAngebot
+          };
+        }
+      },
+      {
+        type: 'absage-schreiben',
+        handler: async (job) => {
+          console.log('\n=== Absage schreiben ===');
+          const absageID = job.processInstanceKey;
+
+          // Variablen aus dem Prozess holen
+          const { anfrageID, absage } = job.variables || {};
+
+          console.log(`🔍 Absage für Anfrage ${anfrageID}:`, absage);
+
+          // Hier kannst du den Text anpassen / „schöner machen“
+          const absageText = `Wir müssen Ihre Anfrage leider ablehnen.`;
+
+          console.log(`📝 Endgültige Absage: ${absageText}`);
+
+          // Wichtig: "absage" zurückgeben, wenn der Flow später genau diese Variable erwartet
+          return {
+            anfrageID:anfrageID,
+            absage: absageText,
+            absageID:absageID
+          };
+        }
+      },
+      {
+         type: 'absage-weiterleiten-hotel',
+         handler: async (job) => {
+           console.log('\n=== Absage weiterleiten (HOTEL) ===');
+           console.log('Job-Variablen (Hotel):', JSON.stringify(job.variables, null, 2));
+
+           const { anfrageID, absage } = job.variables || {};
+
+           const absageHotelText =
+             absage ?? 'Ihre Hotelbuchung können wir leider nicht durchführen.';
+
+           return {
+             anfrageID,
+             absageHotel: absageHotelText
+           };
+         }
+       },
+       {
+         type: 'absage-weiterleiten-flug',
+         handler: async (job) => {
+           console.log('\n=== Absage weiterleiten (FLUG) ===');
+           console.log('Job-Variablen (Flug):', JSON.stringify(job.variables, null, 2));
+
+           const { anfrageID, absage } = job.variables || {};
+
+           const absageFlugText =
+             absage ?? 'Ihre Flugbuchung können wir leider nicht durchführen.';
+
+           return {
+             anfrageID,
+             absageFlug: absageFlugText
+           };
+         }
+       }
 ];
 
 // ============================================================
