@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const { ZBClient } = require('zeebe-node');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
@@ -5,11 +7,15 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 // ⚙️ KONFIGURATION
 // ============================================================
 const ZEEBE_ADDRESS = 'localhost:26500';
-const GEMINI_API_KEY = "AIzaSyCmzFvDYrSugXK2hqLQH-DeZobQQwPQ_Bk"; //https://aistudio.google.com/app/usage?timeRange=last-1-day&project=gen-lang-client-0368553948
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY; //https://aistudio.google.com/app/usage?timeRange=last-1-day&project=gen-lang-client-0368553948
+
+if (!GEMINI_API_KEY) {
+    console.error("❌ FEHLER: Kein GEMINI_API_KEY in der .env Datei gefunden!");
+    process.exit(1); // Beendet das Programm
+}
 
 const AI_MODEL_NAME = "gemini-2.5-flash";
 
-// Initialisierung
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 const zbc = new ZBClient(ZEEBE_ADDRESS);
 

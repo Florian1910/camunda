@@ -4,7 +4,7 @@
     <bpmn:participant id="Participant_0aft3sf" name="Reisebüro" processRef="Process_1d8hhdg" />
     <bpmn:participant id="Participant_1a3670g" name="Fluggesellschaft" processRef="Process_1chwu3o" />
     <bpmn:participant id="Participant_0j09d4n" name="Hotel" processRef="Process_15ce514" />
-    <bpmn:participant id="Participant_0k9lzxl" name="Bergsteiger" processRef="smart_v1" />
+    <bpmn:participant id="Participant_0k9lzxl" name="Bergsteiger" processRef="smart_v2" />
     <bpmn:participant id="Participant_072vnck" name="Bank" processRef="Process_1mv98xx" />
     <bpmn:messageFlow id="Flow_1y7yhcu" sourceRef="Event_06axo8f" targetRef="Event_1k0zyln" />
     <bpmn:messageFlow id="Flow_0lxmc76" sourceRef="Event_0mneuq1" targetRef="Event_1kfshwp" />
@@ -653,7 +653,7 @@
       <zeebe:subscription correlationKey="= flugAnfrageID" />
     </bpmn:extensionElements>
   </bpmn:message>
-  <bpmn:process id="smart_v1" name="Bergsteiger" isExecutable="true">
+  <bpmn:process id="smart_v2" name="Bergsteiger" isExecutable="true">
     <bpmn:serviceTask id="Activity_1unieqa" name="Anfrage schreiben">
       <bpmn:extensionElements>
         <zeebe:taskDefinition type="anfrage-schreiben" />

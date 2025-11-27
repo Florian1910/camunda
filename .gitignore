@@ -1,0 +1,9 @@
+# Geheime Keys ignorieren
+.env
+
+# Node.js Abhängigkeiten ignorieren (die sind riesig und gehören nicht ins Git)
+node_modules/
+
+# IDE Einstellungen ignorieren
+.idea/
+target/
